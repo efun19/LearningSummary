@@ -1,10 +1,15 @@
 # Python
 
-tip：
 
-- Python大小写敏感
-- // 地板除 /精确除
-- Python通过缩进来控制代码快
+
+> [!IMPORTANT]
+>
+> - Python大小写敏感
+> - // 地板除 / 精确除
+> - Python通过缩进来控制代码快
+> - 赋值语句 a, b = b, a + b相当于： a = b，b=a+b
+
+
 
 ## 命令行
 
@@ -19,11 +24,21 @@ tip：
 
 - int()函数用于str转型int
 
+```python
+int("1")
+```
+
 - float()函数用于str转型float
 
-- ```python
-  isinstance(x, A_tuple)#用于判断x是否属于A_tuple类型
-  ```
+```python
+float("1.1")
+```
+
+- isinstance()函数用于判断类型
+
+```python
+isinstance(x, A_tuple)#用于判断x是否属于A_tuple类型
+```
 
 ## 基础
 
@@ -431,3 +446,96 @@ Jack 24 Beijing Engineer
 def person(name, age, *args, city, job):
     print(name, age, args, city, job)
 ```
+
+## 高级
+
+### 高级特性
+
+#### 切片
+
+- 取一个list、tuple、str的部分元素
+
+- [s:e:i] s-开始位置 e-结束位置 i-间隔
+
+  ``` python
+  L = ['Michael', 'Sarah', 'Tracy', 'Bob', 'Jack']
+  >>> L[0:3]
+  ['Michael', 'Sarah', 'Tracy']
+  >>> L[-2:]
+  ['Bob', 'Jack']
+  
+  L = list(range(100))
+  >>> L[:10:2]
+  [0, 2, 4, 6, 8]
+  ```
+
+
+#### 列表生成器
+
+- 写列表生成式时，把要生成的元素`x * x`放到前面，后面跟`for`循环，就可以把list创建出来
+- `for`循环其实可以同时使用两个甚至多个变量，比如`dict`的`items()`可以同时迭代key和value：
+
+```python
+>>> [x * x for x in range(1, 11) if x % 2 == 0]
+[4, 16, 36, 64, 100]
+
+>>> d = {'x': 'A', 'y': 'B', 'z': 'C' }
+>>> for k, v in d.items():
+    	print(k, '=', v)
+```
+
+- 在一个列表生成式中，`for`前面的`if ... else`是表达式，必须要else，而`for`后面的`if`是过滤条件，不能带`else`。
+
+```python
+>>> [x if x % 2 == 0 else -x for x in range(1, 11)]
+[-1, 2, -3, 4, -5, 6, -7, 8, -9, 10]
+```
+
+#### 生成器
+
+- 一边循环一边计算的机制，称为生成器：generator。
+
+- 只要把一个列表生成式的`[]`改成`()`，就创建了一个generator：
+- 可以通过`next()`函数获得generator的下一个返回值，每次调用`next(g)`，就计算出`g`的下一个元素的值，直到计算到最后一个元素，没有更多的元素时，抛出`StopIteration`的错误。
+- 可以用for循环迭代生成器
+
+```plain
+>>> g = (x * x for x in range(10))
+>>> g
+<generator object <genexpr> at 0x1022ef630>
+
+>>> next(g)
+0
+```
+
+- 可以用函数来实现
+- 如果一个函数定义中包含`yield`关键字，那么这个函数就不再是一个普通函数，而是一个generator函数，调用一个generator函数将返回一个generator：
+- 普通函数是顺序执行，遇到`return`语句或者最后一行函数语句就返回。而变成generator的函数，在每次调用`next()`的时候执行，遇到`yield`语句返回，再次执行时从上次返回的`yield`语句处继续执行。
+- 在执行过程中，遇到`yield`就中断，下次又继续执行。
+
+```python
+def fib(max):
+    n, a, b = 0, 0, 1
+    while n < max:
+        yield b
+        a, b = b, a + b
+        n = n + 1
+    return 'done'
+
+>>> for n in fib(6):
+...     print(n)
+1
+1
+2
+3
+5
+8
+```
+
+#### 迭代器
+
+- 可以直接作用于`for`循环的对象统称为可迭代对象：`Iterable`
+- 可以使用`isinstance()`判断一个对象是否是`Iterable`对象
+
+- 可以被`next()`函数调用并不断返回下一个值的对象称为迭代器：`Iterator`
+- 可以使用`isinstance()`判断一个对象是否是`Iterator`对象
