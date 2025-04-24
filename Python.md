@@ -458,6 +458,331 @@ def person(name, age, *args, city, job):
     print(name, age, args, city, job)
 ```
 
+### 错误处理
+
+#### 异常处理
+
+##### 捕获
+
+- try ··· except ··· finally语句快（相当于java的try-catch）
+- 如果没有错误发生，可以在`except`语句块后面加一个`else`，当没有错误发生时，会自动执行`else`语句
+
+```python
+try:
+    print('try...')
+    r = 10 / int('2')
+    print('result:', r)
+except ValueError as e:
+    print('ValueError:', e)
+except ZeroDivisionError as e:
+    print('ZeroDivisionError:', e)
+else:
+    print('no error!')
+finally:
+    print('finally...')
+print('END')
+```
+
+- 所有的错误类型都继承自`BaseException`，常见的错误类型和继承关系看这里 https://docs.python.org/3/library/exceptions.html#exception-hierarchy
+
+##### 抛出错误
+
+- 用`raise`语句抛出一个错误的实例
+- `raise`语句如果不带参数，就会把当前错误原样抛出。此外，在`except`中`raise`一个Error，还可以把一种类型的错误转化成另一种类型
+
+```python
+class FooError(ValueError):
+    pass
+
+def foo(s):
+    n = int(s)
+    if n==0:
+        raise FooError('invalid value: %s' % s)
+    return 10 / n
+
+
+def bar():
+    try:
+        foo('0')
+    except ValueError as e:
+        print('ValueError!')
+        raise
+
+try:
+    10 / 0
+except ZeroDivisionError:
+    raise ValueError('input error!')
+```
+
+#### 调试
+
+##### 断言
+
+- assert statement, "error message" 当statement为false时，抛出AssertionError
+
+```python
+def foo(s):
+    n = int(s)
+    assert n != 0, 'n is zero!'
+    return 10 / n
+
+def main():
+    foo('0')
+```
+
+- 启动Python解释器时可以用`-O`参数来关闭`assert`
+
+```plain
+$ python -O err.py
+```
+
+##### logging
+
+- Python内置的`logging`模块可以非常容易地记录错误信息
+
+```python
+def main():
+    try:
+        bar('0')
+    except Exception as e:
+        logging.exception(e)
+```
+
+- 它允许你指定记录信息的级别，有`debug`，`info`，`warning`，`error`等几个级别，当我们指定`level=INFO`时，`logging.debug`就不起作用了。同理，指定`level=WARNING`后，`debug`和`info`就不起作用了
+
+```python
+import logging
+logging.basicConfig(level=logging.INFO)
+
+s = '0'
+n = int(s)
+logging.info('n = %d' % n)
+print(10 / n)
+```
+
+##### pdb
+
+- 启动Python的调试器pdb，让程序以单步方式运行，可以随时查看运行状态
+
+```plain
+# err.py
+s = '0'
+n = int(s)
+print(10 / n)
+
+$ python -m pdb err.py
+```
+
+- 以参数`-m pdb`启动后，pdb定位到下一步要执行的代码`-> s = '0'`。输入命令`l`来查看代码
+- 输入命令`n`可以单步执行代码
+- 任何时候都可以输入命令`p 变量名`来查看变量
+- 输入命令`q`结束调试，退出程序
+
+##### pdb.set_trace()
+
+- 只需要`import pdb`，然后，在可能出错的地方放一个`pdb.set_trace()`，就可以设置一个断点
+
+```python
+import pdb
+
+s = '0'
+n = int(s)
+pdb.set_trace() # 运行到这里会自动暂停
+print(10 / n)
+```
+
+- 程序会自动在`pdb.set_trace()`暂停并进入pdb调试环境，可以用命令`p`查看变量，或者用命令`c`继续运行
+
+#### 单元测试
+
+// todo
+
+#### 文档测试
+
+// todo 
+
+### IO
+
+#### 文件操作
+
+##### 文件读写
+
+- 使用Python内置的`open()`函数，传入文件名和标示符，标识符有 r 、w 、x 、a 、b 、t 、+模式可以选择，每种代表不同意思
+- 调用`read()`会一次性读取文件的全部内容；可以调用`read(size)`方法，每次最多读取size个字节的内容；调用`readline()`可以每次读取一行内容，调用`readlines()`一次读取所有内容并按行返回`list`。
+- 可以反复调用`write()`来写入文件
+
+```python
+f = open('/Users/michael/test.txt', 'rw+')
+f.read()
+f.write('Hello, world!')
+```
+
+- 要读取非UTF-8编码的文本文件，需要给`open()`函数传入`encoding`参数，遇到有些编码不规范的文件，你可能会遇到`UnicodeDecodeError，`open()`函数还接收一个`errors`参数，表示如果遇到编码错误后如何处理。最简单的方式是直接忽略
+
+```python
+>>> f = open('/Users/michael/gbk.txt', 'r', encoding='gbk', errors='ignore')
+```
+
+- 由于文件读写时都有可能产生`IOError`，所以，为了保证无论是否出错都能正确地关闭文件，我们可以使用`try ... finally`来实现 ，但是每次都这么写实在太繁琐，所以，Python引入了`with`语句来自动帮我们调用`close()`方法
+
+```python
+with open('/path/to/file', 'r') as f:
+    print(f.read())
+```
+
+##### 文件夹操作
+
+- Python内置的`os`模块也可以直接调用操作系统提供的接口函数。
+
+```python
+>>> os.name # 操作系统类型
+'posix'
+
+>>> os.environ # 操作系统中定义的环境变量
+environ({'VERSIONER_PYTHON_PREFER_32_BIT': 'no', 'TERM_PROGRAM_VERSION': '326', 'LOGNAME': 'michael', 'USER': 'michael', 'PATH': '/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/opt/X11/bin:/usr/local/mysql/bin', ...})
+
+>>> os.environ.get('PATH') # 获取某个环境变量的值
+'/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/opt/X11/bin:/usr/local/mysql/bin'
+>>> os.environ.get('x', 'default')
+'default'
+
+# 查看当前目录的绝对路径:
+>>> os.path.abspath('.')
+'/Users/michael'
+# 在某个目录下创建一个新目录，首先把新目录的完整路径表示出来:
+>>> os.path.join('/Users/michael', 'testdir')
+'/Users/michael/testdir'
+# 然后创建一个目录:
+>>> os.mkdir('/Users/michael/testdir')
+# 删掉一个目录:
+>>> os.rmdir('/Users/michael/testdir')
+
+>>> os.path.split('/Users/michael/testdir/file.txt') # 拆分路径
+('/Users/michael/testdir', 'file.txt')
+
+>>> os.path.splitext('/path/to/file.txt') # 得到文件扩展名
+('/path/to/file', '.txt')
+
+# 对文件重命名:
+>>> os.rename('test.txt', 'test.py')
+# 删掉文件:
+>>> os.remove('test.py')
+```
+
+- `shutil`模块中找到很多实用函数，它们可以看做是`os`模块的补充，比如`copyfile()`的函数用来复制文件
+
+#### StringIO和BytesIO
+
+##### StringIO
+
+- 要把`str`写入`StringIO`，我们需要先创建一个`StringIO`，然后，像文件一样写入即可，`getvalue()`方法用于获得写入后的`str`。
+
+```plain
+>>> from io import StringIO
+>>> f = StringIO()
+>>> f.write('hello')
+5
+>>> f.write(' ')
+1
+>>> f.write('world!')
+6
+>>> print(f.getvalue())
+hello world!
+```
+
+##### BytesIO
+
+- 如果要操作二进制数据，就需要使用`BytesIO`
+
+```plain
+>>> from io import BytesIO
+>>> f = BytesIO()
+>>> f.write('中文'.encode('utf-8'))
+6
+>>> print(f.getvalue())
+b'\xe4\xb8\xad\xe6\x96\x87'
+```
+
+- tell 方法获取当前流读取指针的位置
+- seek 方法，用于移动文件读写指针到指定位置,有两个参数，第一个offset: 偏移量，需要向前或向后的字节数，正为向后，负为向前；第二个whence: 可选值，默认为0，表示文件开头，1表示相对于当前的位置，2表示文件末尾。用seek方法时，需注意，如果你打开的文件没有用二进制的方式打开，则offset无法使用负值
+
+#### 序列化
+
+- Python提供了`pickle`模块来实现序列化
+- `pickle.dumps()`方法把任意对象序列化成一个`bytes`，然后，就可以把这个`bytes`写入文件。或者用另一个方法`pickle.dump()`直接把对象序列化后写入一个file-like Object
+
+```python
+>>> import pickle
+>>> d = dict(name='Bob', age=20, score=88)
+>>> pickle.dumps(d)
+b'\x80\x03}q\x00(X\x03\x00\x00\x00ageq\x01K\x14X\x05\x00\x00\x00scoreq\x02KXX\x04\x00\x00\x00nameq\x03X\x03\x00\x00\x00Bobq\x04u.'
+
+>>> f = open('dump.txt', 'wb')
+>>> pickle.dump(d, f)
+>>> f.close()
+```
+
+- 要把对象从磁盘读到内存时，可以先把内容读到一个`bytes`，然后用`pickle.loads()`方法反序列化出对象，也可以直接用`pickle.load()`方法从一个`file-like Object`中直接反序列化出对象。我们打开另一个Python命令行来反序列化刚才保存的对象：
+
+```plain
+>>> f = open('dump.txt', 'rb')
+>>> d = pickle.load(f)
+>>> f.close()
+>>> d
+{'age': 20, 'score': 88, 'name': 'Bob'}
+```
+
+##### JSON
+
+- Python内置的`json`模块提供了非常完善的Python对象到JSON格式的转换，dumps()`方法返回一个`str`，内容就是标准的JSON。类似的，`dump()`方法可以直接把JSON写入一个`file-like Object
+
+```python
+>>> import json
+>>> d = dict(name='Bob', age=20, score=88)
+>>> json.dumps(d)
+'{"age": 20, "score": 88, "name": "Bob"}'
+
+>>> json_str = '{"age": 20, "score": 88, "name": "Bob"}'
+>>> json.loads(json_str)
+{'age': 20, 'score': 88, 'name': 'Bob'}
+```
+
+- 要把JSON反序列化为Python对象，用`loads()`或者对应的`load()`方法，前者把JSON的字符串反序列化，后者从`file-like Object`中读取字符串并反序列化
+
+```plain
+>>> json_str = '{"age": 20, "score": 88, "name": "Bob"}'
+>>> json.loads(json_str)
+{'age': 20, 'score': 88, 'name': 'Bob'}
+```
+
+- Python的`dict`对象可以直接序列化为JSON的`{}`，不过，很多时候，我们更喜欢用`class`表示对象
+- `dumps()`方法可选参数`default`就是把任意一个对象变成一个可序列为JSON的对象,通常`class`的实例都有一个`__dict__`属性，它就是一个`dict`，用来存储实例变量。也有少数例外，比如定义了`__slots__`的class
+
+```python
+def student2dict(std):
+    return {
+        'name': std.name,
+        'age': std.age,
+        'score': std.score
+    }
+    
+>>> print(json.dumps(s, default=student2dict))
+{"age": 20, "name": "Bob", "score": 88}
+
+print(json.dumps(s, default=lambda obj: obj.__dict__))
+```
+
+- 把JSON反序列化为一个`Student`对象实例，`loads()`方法首先转换出一个`dict`对象，然后，我们传入的`object_hook`函数负责把`dict`转换为`Student`实例
+
+```python
+def dict2student(d):
+    return Student(d['name'], d['age'], d['score'])
+
+>>> json_str = '{"age": 20, "score": 88, "name": "Bob"}'
+>>> print(json.loads(json_str, object_hook=dict2student))
+<__main__.Student object at 0x10cd3c190>
+```
+
 ## 高级
 
 ### 高级特性
@@ -740,6 +1065,10 @@ def log(func):
   kw = { 'base': 2 }
   int('10010', **kw)
   ```
+
+### 进程和线程
+
+//todo
 
 
 
@@ -1070,6 +1399,141 @@ My name is Michael.
 
 - 我们需要判断一个对象是否能被调用，能被调用的对象就是一个`Callable`对象,通过`callable()`函数，我们就可以判断一个对象是否是“可调用”对象。
 
+## 常用库
+
+### 内建库
+
+#### 正则表达式
+
+//todo
+
+#### datetime
+
+是Python处理日期和时间的标准库。
+
+`datetime`是模块，`datetime`模块还包含一个`datetime`类，通过`from datetime import datetime`导入的才是`datetime`这个类
+
+##### 获取当前日期和时间
+
+- `datetime.now()`返回当前日期和时间，其类型是`datetime`。
+
+##### 获取指定日期和时间
+
+- 要指定某个日期和时间，我们直接用参数构造一个`datetime`
+
+```plain
+>>> dt = datetime(2015, 4, 19, 12, 20) # 用指定日期时间创建datetime
+>>> print(dt)
+2015-04-19 12:20:00
+```
+
+##### datetime转换timestamp
+
+- Python的timestamp是一个浮点数，整数位表示秒
+
+- timestamp是一个浮点数，它没有时区的概念，而datetime是有时区的。上述转换是在timestamp和本地时间做转换
+
+```Python
+dt.timestamp() #datetime转timestamp
+datetime.fromtimestamp(t) #timestamp转datetime
+```
+
+##### str转换datetime
+
+- 字符串`'%Y-%m-%d %H:%M:%S'`规定了日期和时间部分的格式。详细的说明请参考[Python文档](https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior)。
+
+```plain
+datetime.strptime('2015-6-1 18:19:59', '%Y-%m-%d %H:%M:%S') str转datetime
+obj.strftime('%a, %b %d %H:%M') datetime转str
+```
+
+##### timedelta
+
+- 通过timedelta类实现+ - 时间和日期
+
+- 一个`datetime`类型有一个时区属性`tzinfo`，但是默认为`None`，所以无法区分这个`datetime`到底是哪个时区，除非强行给`datetime`设置一个时区
+
+```plain
+tz_utc_8 = timezone(timedelta(hours=8))
+obj.replace(tzinfo=tz_utc_8) #替换时区
+```
+
+- 通过timedelta进行时区转换
+
+#### Collections
+
+- Python内建的一个集合模块，提供了许多有用的集合类
+
+#### argparse
+
+- 使用[argparse](https://docs.python.org/3/library/argparse.html)解析参数，只需定义好参数类型，就可以获得有效的参数输入，能大大简化获取命令行参数的工作。
+
+#### base64
+
+- Python内置的`base64`可以直接进行base64的编解码
+
+#### struct
+
+- Python提供了一个`struct`模块来解决`bytes`和其他二进制数据类型的转换
+
+#### hashlib
+
+- Python的`hashlib`提供了常见的哈希算法，如MD5，SHA1等等
+
+#### hmac
+
+- Python自带的hmac模块实现了标准的Hmac算法
+
+#### itertools
+
+- Python的内建模块`itertools`提供了非常有用的用于操作迭代对象的函数
+
+#### contextlib
+
+- Python的contextlib模块给我们提供了更方便的方式来实现一个自定义的上下文管理器
+- [【Python学习笔记】with语句与上下文管理器 - 恋曲1990 - 博客园](https://www.cnblogs.com/nnnkkk/p/4309275.html)
+
+#### XML & HTMLParser
+
+- 操作XML有两种方法：DOM和SAX。DOM会把整个XML读入内存，解析为树，因此占用内存大，解析慢，优点是可以任意遍历树的节点。SAX是流模式，边读边解析，占用内存小，解析快，缺点是我们需要自己处理事件。
+- HTML本质上是XML的子集，但是HTML的语法没有XML那么严格，所以不能用标准的DOM或SAX来解析HTML。Python提供了`HTMLParser`来非常方便地解析HTML.
+
+#### venv
+
+- `venv`为应用提供了隔离的Python运行环境，解决了不同应用间安装多版本的冲突问题
+
+#### Tkinter
+
+- Tk是一个图形库，支持多个操作系统，使用Tcl语言开发；
+
+- Tk会调用操作系统提供的本地GUI接口，完成最终的GUI
+
+
+
+
+
+### 三方库
+
+- 所有的第三方模块都会在[PyPI - the Python Package Index](https://pypi.python.org/)上注册
+
+#### Pillow
+
+- PIL：Python Imaging Library，已经是Python平台事实上的图像处理标准库了。在PIL的基础上创建了兼容的版本，名字叫[Pillow](https://github.com/python-pillow/Pillow)，支持最新Python 3.x，又加入了许多新特性
+- 官方文档 [https://pillow.readthedocs.org/](https://pillow.readthedocs.org/)
+
+#### requests & httpx
+
+- 用于访问网络资源 处理URL资源相对内置的`urllib`模块方便
+- `httpx` 是一个现代、高性能的 Python HTTP 客户端，支持 **同步 & 异步** 请求，比 `requests` 更强大（支持 HTTP/2、WebSocket 等）
+
+#### chardet
+
+- 对于未知编码的`bytes`,用它来检测编码，简单易用。
+
+#### psutil
+
+- 顾名思义，psutil = process and system utilities，它不仅可以通过一两行代码实现系统监控
+
 ## module
 
 - 通过import module 来导入一个模块
@@ -1079,4 +1543,4 @@ My name is Michael.
 
 - 在一个模块中，我们可能会定义很多函数和变量，但有的函数和变量我们希望给别人使用，有的函数和变量我们希望仅仅在模块内部使用。在Python中，是通过`_`前缀来实现的。
 - 类似`__xxx__`这样的变量是特殊变量，可以被直接引用，但是有特殊用途
-- 类似`_xxx`和`__xxx`这样的函数或变量就是非公开的（private），不应该被直接引用
+- 类似`_xxx`和`__xxx`这样的函数或变量就是非公开的（private），不应该被直接引用.
